@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koordinat Dönüştürücü</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body {
+      background: linear-gradient(to right, #83a4d4, #b6fbff);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border: 2px solid #dcdde1;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #map {
+      height: 350px;
+      margin-top: 20px;
+      border-radius: 15px;
+      display: none;
+    }
+
+    .output {
+      margin-top: 20px;
+      background-color: #ecf0f1;
+      padding: 15px;
+      border-radius: 10px;
+      white-space: pre-line;
+      font-weight: bold;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Koordinat Dönüştürücü</h2>
+
+  <label>Enlem (latitude)</label>
+  <input type="text" id="latitude" placeholder="41.0082">
+
+  <label>Boylam (longitude)</label>
+  <input type="text" id="longitude" placeholder="28.9784">
+
+  <div class="actions">
+    <button onclick="getCurrentLocation()">Konumumu Kullan</button>
+    <button onclick="convertCoordinates()">Dönüştür</button>
+    <button onclick="copyToClipboard()">Koordinatı Kopyala</button>
+  </div>
+
+  <div class="output" id="result"></div>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  let map, lastMarker;
+
+  function toDMS(decimal, isLat) {
+    const abs = Math.abs(decimal);
+    const deg = Math.floor(abs);
+    const minFloat = (abs - deg) * 60;
+    const min = Math.floor(minFloat);
+    const sec = ((minFloat - min) * 60).toFixed(2);
+    const dir = isLat ? (decimal >= 0 ? "K" : "G") : (decimal >= 0 ? "D" : "B");
+    return `${deg}° ${min}' ${sec}" ${dir}`;
+  }
+
+  function convertCoordinates() {
+    const lat = parseFloat(document.getElementById("latitude").value);
+    const lon = parseFloat(document.getElementById("longitude").value);
+    const output = document.getElementById("result");
+
+    if (isNaN(lat) || isNaN(lon)) {
+      output.textContent = "Lütfen geçerli koordinatlar giriniz.";
+      return;
+    }
+
+    const latDMS = toDMS(lat, true);
+    const lonDMS = toDMS(lon, false);
+    output.textContent = `Dönüştürülen Koordinatlar:\nEnlem: ${latDMS}\nBoylam: ${lonDMS}`;
+
+    if (!map) {
+      map = L.map('map').setView([lat, lon], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap katkıcıları'
+      }).addTo(map);
+    } else {
+      map.setView([lat, lon], 13);
+    }
+
+    if (lastMarker) map.removeLayer(lastMarker);
+    lastMarker = L.marker([lat, lon]).addTo(map).bindPopup("Girilen Konum").openPopup();
+
+    document.getElementById("map").style.display = "block";
+  }
+
+  function getCurrentLocation() {
+    navigator.geolocation.getCurrentPosition(pos => {
+      document.getElementById("latitude").value = pos.coords.latitude.toFixed(6);
+      document.getElementById("longitude").value = pos.coords.longitude.toFixed(6);
+    }, err => {
+      alert("Konum alınamadı: " + err.message);
+    });
+  }
+
+  function copyToClipboard() {
+    const lat = document.getElementById("latitude").value;
+    const lon = document.getElementById("longitude").value;
+    if (!lat || !lon) {
+      alert("Kopyalanacak koordinat yok.");
+      return;
+    }
+    navigator.clipboard.writeText(`${lat}, ${lon}`).then(() => {
+      alert("Koordinat kopyalandı!");
+    });
+  }
+</script>
+
+</body>
+</html>
+
